@@ -96,7 +96,7 @@ func AddUser(d Userdata) int {
 		return userId
 	}
 
-	insertStatements = `insert into "userdata" ("userid", "name", "surname", "description") values ($1, $2, $3, $4)`
+	insertStatements = `insert into "usersdata" ("userid", "name", "surname", "description") values ($1, $2, $3, $4)`
 
 	_, err = db.Exec(insertStatements, userId, d.Name, d.Surname, d.Description)
 
@@ -111,5 +111,36 @@ func AddUser(d Userdata) int {
 
 func ListUsers() ([]Userdata, error) {
 	Data := []Userdata{}
+	db, err := openConnection()
+	if err != nil {
+		fmt.Println(err)
+		return Data, err
+	}
+	defer db.Close()
+
+	rows, err := db.Query(`select
+		"id", "username", "name", "surname", "description"
+		from "users", "usersdata"
+		where users.id = usersdata.userid
+	`)
+	if err != nil {
+		return Data, err
+	}
+
+	for rows.Next() {
+		var id int
+		var username string
+		var name string
+		var surname string
+		var description string
+		err = rows.Scan(&id, &username, &name, &surname, &description)
+		temp := Userdata{ID: id, Username: username, Name: name, Surname: surname, Description: description}
+		Data = append(Data, temp)
+		if err != nil {
+			return Data, err
+		}
+	}
+	defer rows.Close()
+	return Data, nil
 
 }
